@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100;300;400;500&display=swap');
+
+*{
+    font-family: 'poppins', sans-serif;
+}
+body{
+    background-color: #eee;
+}
+.btn a{
+    text-decoration: none;
+    font-family: 'poppins', sans-serif;
+}
+.btn{
+    height: 40px;
+    width: 900px;
+    cursor: pointer;
+    border-radius: 10px;
+}
+.selected {
+    background-color: lightblue;
+    cursor: pointer;
+  }
+  #book-viewer {
+    display: none;
+    width: 100%;
+    height: 80vh;
+  }
+  .selected {
+    border: 2px solid;
+    border-color: transparent;
+    color: white;
+  }
+  #book-viewer {
+    display: none;
+    width: 100%;
+    height: 80vh;
+  }
+  #book-content {
+    display: none;
+    width: 100%;
+    height: 80vh;
+    overflow: auto;
+  }
+  .selected {
+    border: 2px solid blue;
+  }
