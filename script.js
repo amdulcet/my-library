@@ -15,7 +15,7 @@ function handleKeydown(event) {
   bookButtons[selectedBookIndex].classList.remove('selected');
 
   // Handle arrow key presses
-  switch(event.key) {
+  switch (event.key) {
     case 'ArrowUp':
       selectedBookIndex = Math.max(selectedBookIndex - 1, 0);
       break;
@@ -30,11 +30,7 @@ function handleKeydown(event) {
       break;
     case ' ':
       event.preventDefault(); // Prevent default spacebar action (scrolling)
-      if (bookContent.style.display === 'block') {
-        readBook();
-      } else {
-        startVoiceRecognition();
-      }
+      startVoiceRecognition();
       return; // Stop further execution
     case 'Enter':
       window.speechSynthesis.cancel(); // Stop speaking voice
@@ -48,8 +44,6 @@ function handleKeydown(event) {
   // Speak the selected book title
   speakBookTitle(bookButtons[selectedBookIndex]);
 }
-
-
 
 // Function to speak the book title using Speech Synthesis
 function speakBookTitle(button) {
@@ -68,6 +62,11 @@ function openSelectedBook(bookTitle) {
       bookShelf.style.display = 'none';
       bookContent.style.display = 'block';
       readBookButton.style.display = 'block';
+      speakMessage(`You have opened the book titled ${bookTitle}.`);
+      setTimeout(() => {
+        speakMessage("Where do you want to begin from?");
+        startVoiceRecognition(); // Start voice recognition after asking the question
+      }, 3000); // Delay to allow the first message to be spoken
       return; // Stop further execution
     }
   }
@@ -98,12 +97,29 @@ function handleSpeechRecognition(event) {
     }
   } else if (command.includes('close')) {
     closeBook();
-  } else if (command.includes('read')) {
-    readBook();
+  } else if (command.includes('read from page')) {
+    const pageNumber = parseInt(command.split('read from page')[1].trim());
+    if (!isNaN(pageNumber)) {
+      readFromPage(pageNumber);
+    } else {
+      speakMessage("Please specify a valid page number.");
+    }
+  } else if (command.includes('read from chapter')) {
+    const chapterNumber = parseInt(command.split('read from chapter')[1].trim());
+    if (!isNaN(chapterNumber)) {
+      readFromChapter(chapterNumber);
+    } else {
+      speakMessage("Please specify a valid chapter number.");
+    }
+  } else if (command.includes('read from introduction')) {
+    readFromIntroduction();
+  } else if (command.includes('summary')) {
+    readSummary();
   } else {
-    speakMessage("Please say 'open' followed by the book title or 'close' to return to the library.");
+    speakMessage("Please say 'open' followed by the book title, 'close' to return to the library, or specify a reading location.");
   }
 }
+
 // Function to speak a message with reduced speed rate
 function speakMessage(message) {
   const utterance = new SpeechSynthesisUtterance(message);
@@ -131,22 +147,51 @@ function startVoiceRecognition() {
   recognition.start();
 }
 
-// Function to read the book content
-function readBook() {
-  const textContent = bookContent.innerText;
-  const utterance = new SpeechSynthesisUtterance(textContent);
+// Function to read from a specific page and start reading
+function readFromPage(pageNumber) {
+  renderPDFPages(bookContent.dataset.url, pageNumber, true);
+}
+
+// Function to read from the introduction and start reading
+function readFromIntroduction() {
+  // Assuming introduction is on page 1 for this example
+  readFromPage(1);
+}
+
+// Function to read from a specific chapter and start reading
+function readFromChapter(chapterNumber) {
+  // Implement chapter navigation logic here
+  // For simplicity, let's assume each chapter starts on a fixed page
+  const chapterStartPage = chapterNumber * 10; // Example logic
+  readFromPage(chapterStartPage);
+}
+
+// Function to read summary
+function readSummary() {
+  const summaryText = extractSummary(bookContent.dataset.url);
+  const utterance = new SpeechSynthesisUtterance(summaryText);
+  utterance.rate = 0.8; // Adjust speed rate as needed (0.8 is slower)
   window.speechSynthesis.speak(utterance);
 }
 
-// Function to render the PDF using PDF.js
-function renderPDF(url) {
+// Function to extract summary
+function extractSummary(url) {
+  // Implement logic to extract summary from PDF
+  // For simplicity, let's assume summary is on the first page
+  // This function should be enhanced to better extract actual summaries
+  return "This is a placeholder for the summary. The actual summary extraction logic needs to be implemented.";
+}
+
+// Function to render specific pages of the PDF using PDF.js
+function renderPDFPages(url, startPage, readContent = false) {
   const loadingTask = pdfjsLib.getDocument(url);
   loadingTask.promise.then(function(pdf) {
     bookContent.innerHTML = ''; // Clear previous content
-    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+    let fullText = ''; // To collect text for reading
+    for (let pageNumber = startPage; pageNumber <= pdf.numPages; pageNumber++) {
       pdf.getPage(pageNumber).then(function(page) {
         const scale = 1.5;
-        const viewport = page.getViewport({scale: scale});
+        const viewport = page.getViewport({ scale: scale });
 
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
@@ -157,7 +202,7 @@ function renderPDF(url) {
           canvasContext: context,
           viewport: viewport
         };
-        page.render(renderContext).promise.then(function() {
+        page.render(renderContext).promise.then(function () {
           bookContent.appendChild(canvas);
 
           // Extract text from the page
@@ -165,7 +210,59 @@ function renderPDF(url) {
             let textLayerDiv = document.createElement('div');
             textLayerDiv.setAttribute('class', 'textLayer');
             textLayerDiv.setAttribute('style', `width: ${viewport.width}px; height: ${viewport.height}px;`);
-            
+
+            textContent.items.forEach(function(textItem) {
+              let span = document.createElement('span');
+              span.textContent = textItem.str;
+              span.setAttribute('style', `left: ${textItem.transform[4]}px; top: ${textItem.transform[5]}px; font-size: ${textItem.height}px;`);
+              textLayerDiv.appendChild(span);
+              fullText += textItem.str + ' '; // Collect text for reading
+            });
+
+            bookContent.appendChild(textLayerDiv);
+
+            // Start reading the content if readContent is true
+            if (readContent) {
+              const utterance = new SpeechSynthesisUtterance(fullText);
+              utterance.rate = 0.8; // Adjust speed rate as needed (0.8 is slower)
+              window.speechSynthesis.speak(utterance);
+            }
+          });
+        });
+      });
+    }
+  });
+}
+
+// Function to render the PDF using PDF.js
+function renderPDF(url) {
+  const loadingTask = pdfjsLib.getDocument(url);
+  loadingTask.promise.then(function(pdf) {
+    bookContent.dataset.url = url; // Store the URL for later use
+    bookContent.innerHTML = ''; // Clear previous content
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      pdf.getPage(pageNumber).then(function(page) {
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale: scale });
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        page.render(renderContext).promise.then(function () {
+          bookContent.appendChild(canvas);
+
+          // Extract text from the page
+          page.getTextContent().then(function(textContent) {
+            let textLayerDiv = document.createElement('div');
+            textLayerDiv.setAttribute('class', 'textLayer');
+            textLayerDiv.setAttribute('style', `width: ${viewport.width}px; height: ${viewport.height}px;`);
+
             textContent.items.forEach(function(textItem) {
               let span = document.createElement('span');
               span.textContent = textItem.str;
