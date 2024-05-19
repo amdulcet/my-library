@@ -9,52 +9,6 @@ const readBookButton = document.getElementById('read-book');
 let selectedBookIndex = 0;
 bookButtons[selectedBookIndex].classList.add('selected');
 
-// Function to handle keyboard events
-function handleKeydown(event) {
-  // Remove selection from currently selected book button
-  bookButtons[selectedBookIndex].classList.remove('selected');
-
-  // Handle arrow key presses
-  switch (event.key) {
-    case 'ArrowUp':
-      selectedBookIndex = Math.max(selectedBookIndex - 1, 0);
-      break;
-    case 'ArrowDown':
-      selectedBookIndex = Math.min(selectedBookIndex + 1, bookButtons.length - 1);
-      break;
-    case 'ArrowLeft':
-      selectedBookIndex = Math.max(selectedBookIndex - 1, 0);
-      break;
-    case 'ArrowRight':
-      selectedBookIndex = Math.min(selectedBookIndex + 1, bookButtons.length - 1);
-      break;
-    case ' ':
-      event.preventDefault(); // Prevent default spacebar action (scrolling)
-      startVoiceRecognition();
-      return; // Stop further execution
-    case 'Enter':
-      window.speechSynthesis.cancel(); // Stop speaking voice
-      startVoiceRecognition(); // Start voice recognition for commands
-      return; // Stop further execution
-    case 'i':
-      informBookCount(); // Inform user about the number of books
-      return; // Stop further execution
-  }
-
-  // Add selection to the newly selected book button
-  bookButtons[selectedBookIndex].classList.add('selected');
-
-  // Speak the selected book title
-  speakBookTitle(bookButtons[selectedBookIndex]);
-}
-
-// Function to speak the book title using Speech Synthesis
-function speakBookTitle(button) {
-  const bookTitle = button.querySelector('a').innerText;
-  const utterance = new SpeechSynthesisUtterance(bookTitle);
-  window.speechSynthesis.speak(utterance);
-}
-
 // Function to open the selected book
 function openSelectedBook(bookTitle) {
   for (const button of bookButtons) {
@@ -296,6 +250,25 @@ function listBooksInLibrary() {
   const bookTitles = Array.from(bookButtons).map(button => button.querySelector('a').innerText);
   const message = `The books in the library are: ${bookTitles.join(', ')}.`;
   speakMessage(message);
+}
+
+// Function to handle keyboard events
+function handleKeydown(event) {
+  // Stop speaking voice on space bar or Enter key press
+  if (event.key === ' ' || event.key === 'Enter') {
+    window.speechSynthesis.cancel(); // Stop speaking voice
+  }
+
+  // Handle specific key actions
+  switch (event.key) {
+    case ' ':
+      event.preventDefault(); // Prevent default spacebar action (scrolling)
+      startVoiceRecognition();
+      break;
+    case 'Enter':
+      startVoiceRecognition(); // Start voice recognition for commands
+      break;
+  }
 }
 
 // Add event listeners for keyboard events
