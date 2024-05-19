@@ -36,6 +36,9 @@ function handleKeydown(event) {
       window.speechSynthesis.cancel(); // Stop speaking voice
       startVoiceRecognition(); // Start voice recognition for commands
       return; // Stop further execution
+    case 'i':
+      informBookCount(); // Inform user about the number of books
+      return; // Stop further execution
   }
 
   // Add selection to the newly selected book button
@@ -115,6 +118,10 @@ function handleSpeechRecognition(event) {
     readFromIntroduction();
   } else if (command.includes('summary')) {
     readSummary();
+  } else if (command.includes('how many books')) {
+    informBookCount();
+  } else if (command.includes('list books') || command.includes('which books') || command.includes('what books') || command.includes('name the books')){
+    listBooksInLibrary();
   } else {
     speakMessage("Please say 'open' followed by the book title, 'close' to return to the library, or specify a reading location.");
   }
@@ -276,6 +283,19 @@ function renderPDF(url) {
       });
     }
   });
+}
+
+// Function to inform user about the number of books
+function informBookCount() {
+  const bookCount = bookButtons.length;
+  speakMessage(`There are ${bookCount} books in the library.`);
+}
+
+// Function to list the books in the library
+function listBooksInLibrary() {
+  const bookTitles = Array.from(bookButtons).map(button => button.querySelector('a').innerText);
+  const message = `The books in the library are: ${bookTitles.join(', ')}.`;
+  speakMessage(message);
 }
 
 // Add event listeners for keyboard events
